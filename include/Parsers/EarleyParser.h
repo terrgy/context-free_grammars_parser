@@ -1,6 +1,8 @@
 #pragma once
 
 #include "BaseParser.h"
+#include <functional>
+#include <tuple>
 
 class EarleyParser : public BaseParser {
     struct Situation {
@@ -19,12 +21,19 @@ class EarleyParser : public BaseParser {
         int getNext() const;
     };
 
+    struct SituationHash {
+        template<class T>
+        static inline void hash_combine(std::size_t& seed, const T& v);
+        size_t operator()(const Situation& situation) const;
+    };
+
     std::vector< std::vector<Situation> > parsing_lists;
+    std::vector< std::unordered_set<Situation, SituationHash> > fast_contain_check;
 
     void initParser(size_t word_size);
     void mainCycle(const std::vector<int>& word);
 
-    void tryToAdd(const EarleyParser::Situation &situation, size_t parsing_list_idx);
+    void tryToAdd(const Situation &situation, size_t parsing_list_idx);
 
     void clear();
 

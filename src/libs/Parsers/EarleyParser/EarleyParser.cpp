@@ -20,6 +20,21 @@ bool EarleyParser::Situation::operator==(const EarleyParser::Situation &other) c
     tie(other.rule_left_part, other.rule_right_part, other.word_idx, other.right_part_idx);
 }
 
+template<class T>
+void EarleyParser::SituationHash::hash_combine(std::size_t &seed, const T &v) {
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+}
+
+size_t EarleyParser::SituationHash::operator()(const EarleyParser::Situation &situation) const {
+    size_t result = 0;
+    hash_combine(result, situation.rule_left_part);
+    hash_combine(result, situation.rule_right_part);
+    hash_combine(result, situation.word_idx);
+    hash_combine(result, situation.right_part_idx);
+    return result;
+}
+
 void EarleyParser::fit(Grammar grammar) {
     this->grammar = std::move(grammar);
     int new_start = this->grammar.addNonTerminal();
@@ -52,6 +67,7 @@ bool EarleyParser::get_verdict() {
 
 void EarleyParser::initParser(size_t word_size) {
     parsing_lists.resize(word_size + 1);
+    fast_contain_check.resize(word_size + 1);
     tryToAdd(Situation(grammar.start_symbol,
                        grammar.rules[grammar.start_symbol].front(), 0),
              0);
@@ -80,7 +96,7 @@ void EarleyParser::predict(Situation situation, size_t i) {
     }
 }
 
-void EarleyParser::scan(EarleyParser::Situation situation, size_t i, const std::vector<int>& word) {
+void EarleyParser::scan(Situation situation, size_t i, const std::vector<int>& word) {
     int next_symbol = situation.getNext();
     if ((situation.word_idx < word.size()) && (i < word.size()) && (next_symbol == word[i])) {
         Situation new_situation = situation;
@@ -89,7 +105,7 @@ void EarleyParser::scan(EarleyParser::Situation situation, size_t i, const std::
     }
 }
 
-void EarleyParser::complete(EarleyParser::Situation situation, size_t i) {
+void EarleyParser::complete(Situation situation, size_t i) {
     for (int situation_idx = 0; situation_idx < parsing_lists[situation.word_idx].size(); ++situation_idx) {
         if (parsing_lists[situation.word_idx][situation_idx].isFinished() ||
             (parsing_lists[situation.word_idx][situation_idx].getNext() != situation.rule_left_part)) {
@@ -101,14 +117,14 @@ void EarleyParser::complete(EarleyParser::Situation situation, size_t i) {
     }
 }
 
-void EarleyParser::tryToAdd(const EarleyParser::Situation &situation, size_t parsing_list_idx) {
-    if (std::find(parsing_lists[parsing_list_idx].begin(),
-                  parsing_lists[parsing_list_idx].end(), situation) ==
-                  parsing_lists[parsing_list_idx].end()) {
+void EarleyParser::tryToAdd(const Situation &situation, size_t parsing_list_idx) {
+    if (!fast_contain_check[parsing_list_idx].contains(situation)) {
         parsing_lists[parsing_list_idx].push_back(situation);
+        fast_contain_check[parsing_list_idx].insert(situation);
     }
 }
 
 void EarleyParser::clear() {
     parsing_lists.clear();
+    fast_contain_check.clear();
 }
