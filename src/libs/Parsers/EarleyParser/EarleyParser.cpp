@@ -1,6 +1,5 @@
 #include "EarleyParser.h"
 #include <tuple>
-#include <algorithm>
 
 EarleyParser::Situation::Situation(int rule_left_part, const std::vector<int> &rule_right_part, size_t word_idx,
                                    size_t right_part_idx) :
@@ -13,6 +12,10 @@ bool EarleyParser::Situation::isFinished() const {
 
 int EarleyParser::Situation::getNext() const {
     return (*rule_right_part)[right_part_idx];
+}
+
+void EarleyParser::Situation::makeStep() {
+    ++right_part_idx;
 }
 
 bool EarleyParser::Situation::operator==(const EarleyParser::Situation &other) const {
@@ -50,69 +53,67 @@ bool EarleyParser::predict(const std::string &str) {
         return false;
     }
 
-
-    initParser(encoded_str.size());
+    Situation start_situation = initParser(encoded_str.size());
     mainCycle(encoded_str);
-    bool res = get_verdict();
+    start_situation.makeStep();
+    bool res = getVerdict(start_situation);
     clear();
 
     return res;
 }
 
-bool EarleyParser::get_verdict() {
-    return find(parsing_lists.back().begin(), parsing_lists.back().end(),
-                Situation(grammar.start_symbol, grammar.rules[grammar.start_symbol].front(), 0, 1))
-                != parsing_lists.back().end();
+bool EarleyParser::getVerdict(const Situation& end_situation) {
+    return fast_contain_check.back().contains(end_situation);
 }
 
-void EarleyParser::initParser(size_t word_size) {
+EarleyParser::Situation EarleyParser::initParser(size_t word_size) {
+    Situation start_situation(grammar.start_symbol,
+                                          grammar.rules[grammar.start_symbol].front(), 0);
     parsing_lists.resize(word_size + 1);
     fast_contain_check.resize(word_size + 1);
-    tryToAdd(Situation(grammar.start_symbol,
-                       grammar.rules[grammar.start_symbol].front(), 0),
-             0);
+    tryToAdd(start_situation, 0);
+    return start_situation;
 }
 
 void EarleyParser::mainCycle(const std::vector<int>& word) {
     for (size_t i = 0; i <= word.size(); ++i) {
-        for (size_t situation_idx = 0; situation_idx < parsing_lists[i].size(); ++situation_idx) {
-            if (parsing_lists[i][situation_idx].isFinished()) {
-                complete(parsing_lists[i][situation_idx], i);
+        for (auto& situation : parsing_lists[i]) {
+            if (situation.isFinished()) {
+                complete(situation, i);
             } else {
-                if (grammar.isNonTerminal(parsing_lists[i][situation_idx].getNext())) {
-                    predict(parsing_lists[i][situation_idx], i);
+                if (grammar.isNonTerminal(situation.getNext())) {
+                    predict(situation, i);
                 } else {
-                    scan(parsing_lists[i][situation_idx], i, word);
+                    scan(situation, i, word);
                 }
             }
         }
     }
 }
 
-void EarleyParser::predict(Situation situation, size_t i) {
+void EarleyParser::predict(const Situation& situation, size_t i) {
     int next_symbol = situation.getNext();
     for (auto& right_part : grammar.rules[next_symbol]) {
         tryToAdd(Situation(next_symbol, right_part, i), i);
     }
 }
 
-void EarleyParser::scan(Situation situation, size_t i, const std::vector<int>& word) {
+void EarleyParser::scan(const Situation& situation, size_t i, const std::vector<int>& word) {
     int next_symbol = situation.getNext();
     if ((situation.word_idx < word.size()) && (i < word.size()) && (next_symbol == word[i])) {
         Situation new_situation = situation;
-        ++new_situation.right_part_idx;
+        new_situation.makeStep();
         tryToAdd(new_situation, i + 1);
     }
 }
 
-void EarleyParser::complete(Situation situation, size_t i) {
-    for (int situation_idx = 0; situation_idx < parsing_lists[situation.word_idx].size(); ++situation_idx) {
-        if (parsing_lists[situation.word_idx][situation_idx].isFinished() ||
-            (parsing_lists[situation.word_idx][situation_idx].getNext() != situation.rule_left_part)) {
+void EarleyParser::complete(const Situation& situation, size_t i) {
+    for (auto& parent_situation : parsing_lists[situation.word_idx]) {
+        if (parent_situation.isFinished() || (parent_situation.getNext() != situation.rule_left_part)) {
             continue;
         }
-        Situation new_situation = parsing_lists[situation.word_idx][situation_idx];
-        ++new_situation.right_part_idx;
+        Situation new_situation = parent_situation;
+        new_situation.makeStep();
         tryToAdd(new_situation, i);
     }
 }

@@ -3,6 +3,7 @@
 #include "BaseParser.h"
 #include <functional>
 #include <tuple>
+#include <list>
 
 class EarleyParser : public BaseParser {
     struct Situation {
@@ -19,6 +20,7 @@ class EarleyParser : public BaseParser {
 
         bool isFinished() const;
         int getNext() const;
+        void makeStep();
     };
 
     struct SituationHash {
@@ -27,21 +29,21 @@ class EarleyParser : public BaseParser {
         size_t operator()(const Situation& situation) const;
     };
 
-    std::vector< std::vector<Situation> > parsing_lists;
+    std::vector< std::list<Situation> > parsing_lists;
     std::vector< std::unordered_set<Situation, SituationHash> > fast_contain_check;
 
-    void initParser(size_t word_size);
+    Situation initParser(size_t word_size);
     void mainCycle(const std::vector<int>& word);
 
     void tryToAdd(const Situation &situation, size_t parsing_list_idx);
 
     void clear();
 
-    void predict(Situation situation, size_t i);
-    void scan(Situation situation, size_t i, const std::vector<int>& word);
-    void complete(Situation situation, size_t i);
+    void predict(const Situation& situation, size_t i);
+    void scan(const Situation& situation, size_t i, const std::vector<int>& word);
+    void complete(const Situation& situation, size_t i);
 
-    bool get_verdict();
+    bool getVerdict(const Situation& end_situation);
 
 public:
     void fit(Grammar grammar) override;
