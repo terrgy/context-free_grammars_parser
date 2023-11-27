@@ -80,6 +80,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 include_directories(include)
+include_directories(include/Parsers)
 
 add_subdirectory(src)
 add_subdirectory(tests)
