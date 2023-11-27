@@ -70,14 +70,7 @@ function(run_coverage test_sources sources libraries coverage_target target_name
 endfunction()
 
 
-set(SANITIZER "address")
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if(NOT SANITIZER)
-        set(SANITIZER "address")
-    endif()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${SANITIZER}")
-endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
 include_directories(include)
 include_directories(include/Parsers)
