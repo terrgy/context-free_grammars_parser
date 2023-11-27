@@ -10,6 +10,24 @@ const std::unordered_set<char> Grammar::read_allowed_terminals = {'a', 'b', 'c',
 
 Grammar::Grammar() : last_symbol_code(0) {}
 
+
+void Grammar::ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
+}
+
+void Grammar::rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+void Grammar::trim(std::string &s) {
+    rtrim(s);
+    ltrim(s);
+}
+
 void Grammar::read(std::istream& in) {
     size_t non_terminals_count, terminals_count, rules_count;
     in >> non_terminals_count >> terminals_count >> rules_count;
@@ -86,9 +104,10 @@ std::string Grammar::decodeStr(const std::vector<int>& word) const {
 }
 
 void Grammar::readRules(size_t count, std::istream& in) {
+    in.get();
     for (size_t i = 0; i < count; ++i) {
         std::string str;
-        in >> str;
+        getline(in, str);
 
         size_t del_pos = str.find("->");
         if (del_pos == std::string::npos) {
@@ -98,6 +117,8 @@ void Grammar::readRules(size_t count, std::istream& in) {
         std::string left_part, right_part;
         left_part = str.substr(0, del_pos);
         right_part = str.substr(del_pos + 2);
+        trim(left_part);
+        trim(right_part);
 
         if (left_part.size() != 1) {
             throw std::runtime_error("Left part must be one symbol only");
@@ -164,3 +185,21 @@ size_t Grammar::getRulesCount() const {
     }
     return result;
 };
+
+int Grammar::addNonTerminal() {
+    int new_code = last_symbol_code++;
+    non_terminals.insert(new_code);
+    return new_code;
+}
+
+void Grammar::addRule(int left_part, const std::vector<int>& right_part) {
+    rules[left_part].push_back(right_part);
+}
+
+void Grammar::changeStartSymbol(int new_start) {
+    start_symbol = new_start;
+}
+
+bool Grammar::isNonTerminal(int symbol_code) const {
+    return non_terminals.contains(symbol_code);
+}

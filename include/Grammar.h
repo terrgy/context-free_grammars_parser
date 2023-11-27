@@ -6,9 +6,17 @@
 #include <string>
 #include <iostream>
 
+#include <algorithm>
+#include <cctype>
+#include <locale>
+
 class Grammar {
 private:
     int last_symbol_code;
+
+    static inline void ltrim(std::string &s);
+    static inline void rtrim(std::string &s);
+    static inline void trim(std::string &s);
 
     void readSymbols(size_t count, std::unordered_set<int>& storage,
                             std::unordered_map<int, char>& symbol_to_char, std::unordered_map<char, int>& char_to_symbol,
@@ -42,4 +50,8 @@ public:
     std::vector<int> encodeStr(const std::string& str) const;
     std::string decodeSymbol(int symbol_code) const;
     std::string decodeStr(const std::vector<int>& word) const;
+    int addNonTerminal();
+    void addRule(int left_part, const std::vector<int>& right_part);
+    void changeStartSymbol(int new_start);
+    bool isNonTerminal(int symbol_code) const;
 };
