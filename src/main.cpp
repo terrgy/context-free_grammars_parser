@@ -1,9 +1,6 @@
-//#define _GLIBCXX_DEBUG 1
-
 #include <iostream>
 #include "Grammar.h"
 #include "EarleyParser.h"
-
 
 int main() {
     Grammar grammar;

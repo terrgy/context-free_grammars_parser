@@ -28,7 +28,13 @@ void EarleyParser::fit(Grammar grammar) {
 }
 
 bool EarleyParser::predict(const std::string &str) {
-    std::vector<int> encoded_str = grammar.encodeStr(str);
+    std::vector<int> encoded_str;
+    try {
+        encoded_str = grammar.encodeStr(str);
+    } catch (std::runtime_error&) {
+        return false;
+    }
+
 
     initParser(encoded_str.size());
     mainCycle(encoded_str);
