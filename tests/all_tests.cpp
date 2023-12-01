@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "GrammarTestCase.h"
-
 int main(int argc, char **argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
