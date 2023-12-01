@@ -5,9 +5,23 @@
 
 class LR1Parser : public BaseParser {
 private:
+    template<class T>
+    static inline void hash_combine(std::size_t& seed, const T& v);
+
+    struct Rule {
+        int left_part;
+        const std::vector<int>* right_part;
+
+        Rule(int left_part, const std::vector<int>& right_part);
+        bool operator==(const Rule& other) const;
+    };
+
+    struct RuleHash {
+        size_t operator()(const Rule& rule) const;
+    };
+
     struct Situation {
-        int rule_left_part;
-        const std::vector<int>* rule_right_part;
+        Rule rule;
         size_t right_part_idx;
         int next_terminal;
 
@@ -15,15 +29,12 @@ private:
                   int next_terminal, size_t right_part_idx = 0);
 
         bool operator==(const Situation& other) const;
-        bool operator<(const Situation& other) const;
         bool isFinished() const;
         int getNext() const;
         void makeStep();
     };
 
     struct SituationHash {
-        template<class T>
-        static inline void hash_combine(std::size_t& seed, const T& v);
         size_t operator()(const Situation& situation) const;
     };
 
@@ -44,18 +55,6 @@ private:
         TableEntry(Type type, std::optional<size_t> idx);
 
         bool operator==(const TableEntry& other) const;
-    };
-
-    struct Rule {
-        int left_part;
-        const std::vector<int>* right_part;
-
-        Rule(int left_part, const std::vector<int>& right_part);
-        bool operator==(const Rule& other) const;
-    };
-
-    struct RuleHash {
-        size_t operator()(const Rule& rule) const;
     };
 
     static std::vector<int> word_suffix(const std::vector<int>& word, size_t pos = 0);

@@ -3,25 +3,20 @@
 #include <cstdint>
 
 LR1Parser::Situation::Situation(int rule_left_part, const std::vector<int>& rule_right_part, int next_terminal,
-                                size_t right_part_idx) : rule_left_part(rule_left_part), rule_right_part(&rule_right_part),
+                                size_t right_part_idx) : rule(rule_left_part, rule_right_part),
                                                         right_part_idx(right_part_idx), next_terminal(next_terminal) {}
 
 bool LR1Parser::Situation::operator==(const LR1Parser::Situation &other) const {
-    return tie(rule_left_part, rule_right_part, next_terminal, right_part_idx) ==
-           tie(other.rule_left_part, other.rule_right_part, other.next_terminal, other.right_part_idx);
-}
-
-bool LR1Parser::Situation::operator<(const LR1Parser::Situation &other) const {
-    return tie(rule_left_part, rule_right_part, next_terminal, right_part_idx) <
-           tie(other.rule_left_part, other.rule_right_part, other.next_terminal, other.right_part_idx);
+    return tie(rule.left_part, rule.right_part, next_terminal, right_part_idx) ==
+           tie(other.rule.left_part, other.rule.right_part, other.next_terminal, other.right_part_idx);
 }
 
 bool LR1Parser::Situation::isFinished() const {
-    return right_part_idx == rule_right_part->size();
+    return right_part_idx == rule.right_part->size();
 }
 
 int LR1Parser::Situation::getNext() const {
-    return (*rule_right_part)[right_part_idx];
+    return (*rule.right_part)[right_part_idx];
 }
 
 void LR1Parser::Situation::makeStep() {
@@ -29,15 +24,15 @@ void LR1Parser::Situation::makeStep() {
 }
 
 template<class T>
-void LR1Parser::SituationHash::hash_combine(std::size_t& seed, const T &v) {
+void LR1Parser::hash_combine(std::size_t& seed, const T &v) {
     std::hash<T> hasher;
     seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
 }
 
 size_t LR1Parser::SituationHash::operator()(const LR1Parser::Situation& situation) const {
     size_t result = 0;
-    hash_combine(result, situation.rule_left_part);
-    hash_combine(result, situation.rule_right_part);
+    RuleHash hasher;
+    hash_combine(result, hasher(situation.rule));
     hash_combine(result, situation.right_part_idx);
     hash_combine(result, situation.next_terminal);
     return result;
@@ -47,7 +42,7 @@ size_t LR1Parser::SituationSetHash::operator()(const LR1Parser::situation_set& s
     size_t result = 0;
     LR1Parser::SituationHash hasher;
     for (auto& situation : st) {
-        LR1Parser::SituationHash::hash_combine(result, hasher(situation));
+        LR1Parser::hash_combine(result, hasher(situation));
     }
     return result;
 }
@@ -64,8 +59,8 @@ LR1Parser::Rule::Rule(int left_part, const std::vector<int>& right_part) : left_
 
 size_t LR1Parser::RuleHash::operator()(const LR1Parser::Rule &rule) const {
     size_t result = 0;
-    LR1Parser::SituationHash::hash_combine(result, rule.left_part);
-    LR1Parser::SituationHash::hash_combine(result, rule.right_part);
+    LR1Parser::hash_combine(result, rule.left_part);
+    LR1Parser::hash_combine(result, rule.right_part);
     return result;
 }
 
@@ -117,7 +112,7 @@ LR1Parser::situation_set LR1Parser::closure(const situation_set& situations) {
             continue;
         }
         int next_non_terminal = situation.getNext();
-        auto first_word = word_suffix(*situation.rule_right_part, situation.right_part_idx + 1);
+        auto first_word = word_suffix(*situation.rule.right_part, situation.right_part_idx + 1);
         first_word.push_back(situation.next_terminal);
         auto first_terminals = getFirst(first_word);
         for (auto& right_part : grammar.rules[next_non_terminal]) {
@@ -241,11 +236,11 @@ void LR1Parser::fitTable() {
             if (!situation.isFinished()) {
                 continue;
             }
-            if (situation.rule_left_part == grammar.start_symbol) {
+            if (situation.rule.left_part == grammar.start_symbol) {
                 setTableCell(i, end_terminal, TableEntry(TableEntry::Type::Accept));
             } else {
                 setTableCell(i, situation.next_terminal,
-                             TableEntry(TableEntry::Type::Reduce, rule_to_idx[Rule(situation.rule_left_part, *situation.rule_right_part)]));
+                             TableEntry(TableEntry::Type::Reduce, rule_to_idx[situation.rule]));
             }
         }
     }
