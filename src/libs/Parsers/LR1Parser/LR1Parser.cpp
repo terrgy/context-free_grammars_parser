@@ -142,12 +142,12 @@ LR1Parser::situation_set LR1Parser::getGoRaw(const situation_set& situations, in
 }
 
 size_t LR1Parser::getGo(size_t closure_idx, int symbol) {
-    if (!go[closure_idx].contains(symbol)) {
+    if (go[closure_idx][symbol] == SIZE_MAX) {
         auto new_closure = getGoRaw(situation_closures[closure_idx], symbol);
         if (closure_to_idx.contains(new_closure)) {
             go[closure_idx][symbol] = closure_to_idx[new_closure];
         } else if (new_closure.empty()) {
-            go[closure_idx][symbol] = SIZE_MAX;
+            go[closure_idx][symbol] = SIZE_MAX - 1;
         } else {
             go[closure_idx][symbol] = addClosure(new_closure);
         }
@@ -157,7 +157,8 @@ size_t LR1Parser::getGo(size_t closure_idx, int symbol) {
 
 size_t LR1Parser::addClosure(const LR1Parser::situation_set& situations) {
     situation_closures.push_back(situations);
-    go.emplace_back();
+    go.emplace_back(grammar.alphabetSize(), SIZE_MAX);
+    table.emplace_back(grammar.alphabetSize());
     closure_to_idx[situations] = situation_closures.size() - 1;
     return situation_closures.size() - 1;
 }
@@ -169,8 +170,8 @@ void LR1Parser::fitGrammar(Grammar &grammar) {
 }
 
 void LR1Parser::fitFirstNonTerminals() {
+    first.resize(grammar.alphabetSize());
     for (int terminal : grammar.terminals) {
-        first[terminal];
         first[terminal].insert(terminal);
     }
 
@@ -190,20 +191,8 @@ void LR1Parser::fitFirstNonTerminals() {
     }
 }
 
-void LR1Parser::fitSituationClosures() {
-    Situation start_situation(grammar.start_symbol,
-                              grammar.rules[grammar.start_symbol].front(), end_terminal);
-    addClosure(closure({start_situation}));
-    auto alphabet = grammar.getAlphabet();
-    for (size_t closure_idx = 0; closure_idx < situation_closures.size(); ++closure_idx) {
-        for (int symbol : alphabet) {
-            getGo(closure_idx, symbol);
-        }
-    }
-}
-
 void LR1Parser::setTableCell(size_t closure_idx, int symbol, const LR1Parser::TableEntry& entry) {
-    if (table[closure_idx].contains(symbol) && !(table[closure_idx][symbol] == entry)) {
+    if ((table[closure_idx][symbol].type != TableEntry::Type::Reject) && !(table[closure_idx][symbol] == entry)) {
         throw std::runtime_error("Grammar is not LR(1)");
     }
     table[closure_idx][symbol] = entry;
@@ -222,29 +211,38 @@ void LR1Parser::fitRulesNumbering() {
 }
 
 void LR1Parser::fitTable() {
-    table.resize(situation_closures.size());
     auto alphabet = grammar.getAlphabet();
+    Situation start_situation(grammar.start_symbol,
+                              grammar.rules[grammar.start_symbol].front(), end_terminal);
+    addClosure(closure({start_situation}));
     for (size_t i = 0; i < situation_closures.size(); ++i) {
-        for (auto symbol : alphabet) {
-            size_t current_go = getGo(i, symbol);
-            if (current_go == SIZE_MAX) {
-                continue;
-            }
-            setTableCell(i, symbol, TableEntry(TableEntry::Type::Shift, current_go));
+        fitTableShift(alphabet, i);
+        fitTableReduce(i);
+    }
+}
+
+void LR1Parser::fitTableReduce(size_t closure_idx) {
+    for (auto& situation : situation_closures[closure_idx]) {
+        if (!situation.isFinished()) {
+            continue;
         }
-        for (auto& situation : situation_closures[i]) {
-            if (!situation.isFinished()) {
-                continue;
-            }
-            if (situation.rule.left_part == grammar.start_symbol) {
-                setTableCell(i, end_terminal, TableEntry(TableEntry::Type::Accept));
-            } else {
-                setTableCell(i, situation.next_terminal,
-                             TableEntry(TableEntry::Type::Reduce, rule_to_idx[situation.rule]));
-            }
+        if (situation.rule.left_part == grammar.start_symbol) {
+            setTableCell(closure_idx, end_terminal, TableEntry(TableEntry::Type::Accept));
+        } else {
+            setTableCell(closure_idx, situation.next_terminal,
+                         TableEntry(TableEntry::Type::Reduce, rule_to_idx[situation.rule]));
         }
     }
+}
 
+void LR1Parser::fitTableShift(std::unordered_set<int> &alphabet, size_t closure_idx) {
+    for (auto symbol : alphabet) {
+        size_t current_go = getGo(closure_idx, symbol);
+        if (current_go == SIZE_MAX - 1) {
+            continue;
+        }
+        setTableCell(closure_idx, symbol, TableEntry(TableEntry::Type::Shift, current_go));
+    }
 }
 
 void LR1Parser::clearFitData() {
@@ -258,7 +256,6 @@ void LR1Parser::clearFitData() {
 void LR1Parser::fit(Grammar grammar) {
     fitGrammar(grammar);
     fitFirstNonTerminals();
-    fitSituationClosures();
     fitRulesNumbering();
     fitTable();
     clearFitData();

@@ -59,13 +59,13 @@ private:
 
     static std::vector<int> word_suffix(const std::vector<int>& word, size_t pos = 0);
 
-    std::vector< std::unordered_map<int, TableEntry> > table;
+    std::vector< std::vector<TableEntry> > table;
     std::vector<Rule> idx_to_rule;
     int end_terminal;
 
-    std::unordered_map<int, std::unordered_set<int> > first;
+    std::vector< std::unordered_set<int> > first;
     std::vector<situation_set> situation_closures;
-    std::vector< std::unordered_map<int, size_t> > go;
+    std::vector< std::vector<size_t> > go;
     std::unordered_map<situation_set, size_t, SituationSetHash> closure_to_idx;
     std::unordered_map<Rule, size_t, RuleHash> rule_to_idx;
 
@@ -78,9 +78,10 @@ private:
 
     void fitGrammar(Grammar& grammar);
     void fitFirstNonTerminals();
-    void fitSituationClosures();
     void fitRulesNumbering();
     void fitTable();
+    void fitTableShift(std::unordered_set<int> &alphabet, size_t closure_idx);
+    void fitTableReduce(size_t closure_idx);
     void clearFitData();
 
     bool predictMainCycle(const std::vector<int>& word);

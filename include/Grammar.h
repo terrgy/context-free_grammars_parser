@@ -18,9 +18,8 @@ private:
     static inline void rtrim(std::string &s);
     static inline void trim(std::string &s);
 
-    void readSymbols(size_t count, std::unordered_set<int>& storage,
-                            std::unordered_map<int, char>& symbol_to_char, std::unordered_map<char, int>& char_to_symbol,
-                            const std::unordered_set<char>& allowed, std::istream& in = std::cin);
+    void readNonTerminals(size_t count, std::istream& in = std::cin);
+    void readTerminals(size_t count, std::istream& in = std::cin);
     void readRules(size_t count, std::istream& in = std::cin);
     void readStartSymbol(std::istream& in = std::cin);
 
@@ -38,10 +37,8 @@ public:
     std::unordered_map<int, std::vector< std::vector<int> > > rules;
     int start_symbol;
 
-    std::unordered_map<int, char> non_terminal_to_char;
-    std::unordered_map<int, char> terminal_to_char;
-    std::unordered_map<char, int> char_to_non_terminal;
-    std::unordered_map<char, int> char_to_terminal;
+    std::unordered_map<int, char> symbol_to_char;
+    std::unordered_map<char, int> char_to_symbol;
 
     void read(std::istream& in = std::cin);
     void print(std::ostream& out = std::cout) const;
@@ -51,10 +48,13 @@ public:
     std::string decodeSymbol(int symbol_code) const;
     std::string decodeStr(const std::vector<int>& word) const;
     int addNonTerminal();
+    int addSymbolicNonTerminal(char symbol);
     void addRule(int left_part, const std::vector<int>& right_part);
     void changeStartSymbol(int new_start);
     bool isNonTerminal(int symbol_code) const;
     void makeAugmented();
     int addTerminal();
+    int addSymbolicTerminal(char symbol);
     std::unordered_set<int> getAlphabet() const;
+    size_t alphabetSize() const;
 };
