@@ -54,4 +54,7 @@ public:
     void addRule(int left_part, const std::vector<int>& right_part);
     void changeStartSymbol(int new_start);
     bool isNonTerminal(int symbol_code) const;
+    void makeAugmented();
+    int addTerminal();
+    std::unordered_set<int> getAlphabet() const;
 };

@@ -1,12 +1,13 @@
 #include <iostream>
 #include "Grammar.h"
 #include "EarleyParser.h"
+#include "LR1Parser.h"
 
 int main() {
     Grammar grammar;
     grammar.read();
 
-    EarleyParser parser;
+    LR1Parser parser;
     parser.fit(grammar);
 
     int n;

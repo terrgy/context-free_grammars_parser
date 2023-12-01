@@ -184,7 +184,7 @@ size_t Grammar::getRulesCount() const {
         result += rule.second.size();
     }
     return result;
-};
+}
 
 int Grammar::addNonTerminal() {
     int new_code = last_symbol_code++;
@@ -202,4 +202,22 @@ void Grammar::changeStartSymbol(int new_start) {
 
 bool Grammar::isNonTerminal(int symbol_code) const {
     return non_terminals.contains(symbol_code);
+}
+
+void Grammar::makeAugmented() {
+    int new_start = addNonTerminal();
+    addRule(new_start, {start_symbol});
+    changeStartSymbol(new_start);
+}
+
+int Grammar::addTerminal() {
+    int new_code = last_symbol_code++;
+    terminals.insert(new_code);
+    return new_code;
+}
+
+std::unordered_set<int> Grammar::getAlphabet() const {
+    std::unordered_set<int> result = terminals;
+    result.insert(non_terminals.begin(), non_terminals.end());
+    return result;
 }

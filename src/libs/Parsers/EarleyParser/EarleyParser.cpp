@@ -3,8 +3,8 @@
 
 EarleyParser::Situation::Situation(int rule_left_part, const std::vector<int> &rule_right_part, size_t word_idx,
                                    size_t right_part_idx) :
-                                   rule_left_part(rule_left_part), rule_right_part(&rule_right_part),
-                                   right_part_idx(right_part_idx), word_idx(word_idx) {}
+        rule_left_part(rule_left_part), rule_right_part(&rule_right_part),
+        right_part_idx(right_part_idx), word_idx(word_idx) {}
 
 bool EarleyParser::Situation::isFinished() const {
     return right_part_idx == rule_right_part->size();
@@ -20,7 +20,7 @@ void EarleyParser::Situation::makeStep() {
 
 bool EarleyParser::Situation::operator==(const EarleyParser::Situation &other) const {
     return tie(rule_left_part, rule_right_part, word_idx, right_part_idx) ==
-    tie(other.rule_left_part, other.rule_right_part, other.word_idx, other.right_part_idx);
+           tie(other.rule_left_part, other.rule_right_part, other.word_idx, other.right_part_idx);
 }
 
 template<class T>
@@ -40,9 +40,7 @@ size_t EarleyParser::SituationHash::operator()(const EarleyParser::Situation &si
 
 void EarleyParser::fit(Grammar grammar) {
     this->grammar = std::move(grammar);
-    int new_start = this->grammar.addNonTerminal();
-    this->grammar.addRule(new_start, {this->grammar.start_symbol});
-    this->grammar.changeStartSymbol(new_start);
+    this->grammar.makeAugmented();
 }
 
 bool EarleyParser::predict(const std::string &str) {
@@ -68,7 +66,7 @@ bool EarleyParser::getVerdict(const Situation& end_situation) {
 
 EarleyParser::Situation EarleyParser::initParser(size_t word_size) {
     Situation start_situation(grammar.start_symbol,
-                                          grammar.rules[grammar.start_symbol].front(), 0);
+                              grammar.rules[grammar.start_symbol].front(), 0);
     parsing_lists.resize(word_size + 1);
     fast_contain_check.resize(word_size + 1);
     tryToAdd(start_situation, 0);
