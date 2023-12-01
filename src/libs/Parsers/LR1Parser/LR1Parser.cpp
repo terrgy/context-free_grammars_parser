@@ -264,37 +264,45 @@ void LR1Parser::fit(Grammar grammar) {
     clearFitData();
 }
 
-bool LR1Parser::predictCycle(const std::vector<int>& word) {
+void LR1Parser::predictShift(std::vector<int> &stack, const LR1Parser::TableEntry &entry, int symbol, size_t& word_idx) {
+    stack.push_back(symbol);
+    ++word_idx;
+    stack.push_back((int)entry.idx.value());
+}
+
+bool LR1Parser::predictReduce(std::vector<int> &stack, const LR1Parser::TableEntry &entry) {
+    auto& rule = idx_to_rule[entry.idx.value()];
+    for (int i = (int)rule.right_part->size() - 1; i >= 0; --i) {
+        stack.pop_back();
+        if (stack.empty() || (stack.back() != rule.right_part->at(i))) {
+            return false;
+        }
+        stack.pop_back();
+    }
+    TableEntry new_entry = table[stack.back()][rule.left_part];
+    if (new_entry.type != TableEntry::Type::Shift) {
+        return false;
+    }
+    stack.push_back(rule.left_part);
+    stack.push_back((int)new_entry.idx.value());
+    return true;
+}
+
+bool LR1Parser::predictMainCycle(const std::vector<int>& word) {
     std::vector<int> stack;
     stack.push_back(0);
 
     size_t word_idx = 0;
-    while (true) {
+    while (word_idx < word.size()) {
         int symbol = word[word_idx];
-        size_t closure_idx = stack.back();
-        TableEntry entry = table[closure_idx][symbol];
+        TableEntry entry = table[stack.back()][symbol];
         switch (entry.type) {
             case TableEntry::Type::Shift:
-                stack.push_back(symbol);
-                ++word_idx;
-                stack.push_back((int)entry.idx.value());
+                predictShift(stack, entry, symbol, word_idx);
                 break;
             case TableEntry::Type::Reduce:
-                {
-                    auto& rule = idx_to_rule[entry.idx.value()];
-                    for (int i = (int)rule.right_part->size() - 1; i >= 0; --i) {
-                        stack.pop_back();
-                        if (stack.empty() || (stack.back() != rule.right_part->at(i))) {
-                            return false;
-                        }
-                        stack.pop_back();
-                    }
-                    entry = table[stack.back()][rule.left_part];
-                    if (entry.type != TableEntry::Type::Shift) {
-                        return false;
-                    }
-                    stack.push_back(rule.left_part);
-                    stack.push_back((int)entry.idx.value());
+                if (!predictReduce(stack, entry)) {
+                    return false;
                 }
                 break;
             case TableEntry::Type::Accept:
@@ -303,6 +311,7 @@ bool LR1Parser::predictCycle(const std::vector<int>& word) {
                 return false;
         }
     }
+    return false;
 }
 
 bool LR1Parser::predict(const std::string &str) {
@@ -314,5 +323,5 @@ bool LR1Parser::predict(const std::string &str) {
     }
 
     encoded_str.push_back(end_terminal);
-    return predictCycle(encoded_str);
+    return predictMainCycle(encoded_str);
 }

@@ -83,7 +83,9 @@ private:
     void fitTable();
     void clearFitData();
 
-    bool predictCycle(const std::vector<int>& word);
+    bool predictMainCycle(const std::vector<int>& word);
+    static void predictShift(std::vector<int>& stack, const TableEntry& entry, int symbol, size_t& word_idx);
+    bool predictReduce(std::vector<int>& stack, const TableEntry& entry);
 
 public:
     void fit(Grammar grammar) override;
