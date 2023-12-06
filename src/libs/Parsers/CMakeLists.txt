@@ -1,0 +1,2 @@
+add_subdirectory(EarleyParser)
+add_subdirectory(LR1Parser)

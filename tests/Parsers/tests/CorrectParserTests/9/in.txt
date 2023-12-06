@@ -1,0 +1,21 @@
+3 6 6
+SAB
+abcdkz
+S->aSb
+S->AB
+A->c
+A->ddAk
+A->
+B->zzz
+S
+10
+zzz
+azzzb
+aazzzbb
+aaczzzbb
+czzz
+addddkkzzzb
+
+a
+aaaczzzbb
+c

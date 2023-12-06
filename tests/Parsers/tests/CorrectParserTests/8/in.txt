@@ -1,0 +1,16 @@
+1 2 2
+S
+ab
+S->aSb
+S->
+S
+9
+
+ab
+aaaaaabbbbbb
+a
+aaaa
+c
+aab
+bbb
+9()9
